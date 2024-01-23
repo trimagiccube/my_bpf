@@ -1,0 +1,14 @@
+# copy from linux tools/build/Makefile.include
+build := -f $(CURDIR)/Makefile.build dir=. obj
+
+$(info bbbbbbbb11)
+fixdep:
+	echo "aaaa"
+#	$(Q)$(MAKE) CFLAGS= LDFLAGS= $(OUTPUT)fixdep
+
+#$(Q)$(MAKE) -C $(CURDIR)/ CFLAGS= LDFLAGS= $(OUTPUT)/fixdep
+
+fixdep-clean:
+	$(Q)$(MAKE) -C $(CURDIR)/ clean
+
+.PHONY: fixdep
