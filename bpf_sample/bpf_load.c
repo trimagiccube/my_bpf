@@ -215,6 +215,7 @@ static int load_maps(struct bpf_map_data *maps, int nr_maps,
 	int i, numa_node;
 
 	for (i = 0; i < nr_maps; i++) {
+		printf("load %d maps\n", i);
 		if (fixup_map) {
 			fixup_map(&maps[i], i);
 			/* Allow userspace to assign map FD prior to creation */
@@ -369,12 +370,15 @@ static int load_elf_maps_section(struct bpf_map_data *maps, int maps_shndx,
 		return -EINVAL;
 	}
 
+	printf("maps_shndx is %d\n", maps_shndx);
 	/* For each map get corrosponding symbol table entry */
 	sym = calloc(MAX_MAPS+1, sizeof(GElf_Sym));
 	for (i = 0, nr_maps = 0; i < symbols->d_size / sizeof(GElf_Sym); i++) {
 		assert(nr_maps < MAX_MAPS+1);
 		if (!gelf_getsym(symbols, i, &sym[nr_maps]))
 			continue;
+		if (i!=0)
+		printf("st_shndx is %d, name is %d\n", sym[nr_maps].st_shndx, sym[nr_maps].st_name);
 		if (sym[nr_maps].st_shndx != maps_shndx)
 			continue;
 		/* Only increment iif maps section */
@@ -428,6 +432,8 @@ static int load_elf_maps_section(struct bpf_map_data *maps, int maps_shndx,
 			return -errno;
 		}
 
+		printf("strdup(%s): %s(%d)\n", map_name,
+				strerror(errno), errno);
 		/* Symbol value is offset into ELF maps section data area */
 		offset = sym[i].st_value;
 		def = (struct bpf_map_def *)(data_maps->d_buf + offset);
@@ -491,7 +497,7 @@ static int do_load_bpf_file(const char *path, fixup_map_cb fixup_map)
 		if (get_sec(elf, i, &ehdr, &shname, &shdr, &data))
 			continue;
 
-		if (0) /* helpful for llvm debugging */
+		if (1) /* helpful for llvm debugging */
 			printf("section %d:%s data %p size %zd link %d flags %d\n",
 			       i, shname, data->d_buf, data->d_size,
 			       shdr.sh_link, (int) shdr.sh_flags);

@@ -35,12 +35,17 @@ endif
 CC ?= gcc
 # Trick to allow make to be run from this directory
 $(info curdir is $(CURDIR))
-all: $(LIBBPF) hello hello_kern.o
+all: $(LIBBPF) hello hello_kern.o syscall_tp_kern.o syscall_tp
 
 hello:
 	gcc -Wall -Wmissing-prototypes -Wstrict-prototypes -O2 -fomit-frame-pointer -std=gnu89  -I$(HOSTCFLAGS) -c -o hello_user.o hello_user.c
 	gcc -Wall -Wmissing-prototypes -Wstrict-prototypes -O2 -fomit-frame-pointer -std=gnu89  -I$(HOSTCFLAGS) -c -o bpf_load.o bpf_load.c
 	gcc  -o hello bpf_load.o ../libbpf_kernel/bpf.o hello_user.o  -lelf
+
+syscall_tp:
+	gcc -Wall -Wmissing-prototypes -Wstrict-prototypes -O2 -fomit-frame-pointer -std=gnu89  -I$(HOSTCFLAGS) -c -o syscall_tp_user.o syscall_tp_user.c
+	gcc -Wall -Wmissing-prototypes -Wstrict-prototypes -O2 -fomit-frame-pointer -std=gnu89  -I$(HOSTCFLAGS) -c -o bpf_load.o bpf_load.c
+	gcc  -o syscall_tp bpf_load.o ../libbpf_kernel/bpf.o syscall_tp_user.o  -lelf
 clean:
 	$(MAKE) -C ../../ M=$(CURDIR) clean
 	@find $(CURDIR) -type f -name '*~' -delete
@@ -87,6 +92,21 @@ $(info obj is $(obj))
 # useless for BPF samples.
 #$(obj)/%.o: $(src)/%.c
 hello_kern.o: hello_kern.c
+	$(CLANG) $(NOSTDINC_FLAGS) $(LINUXINCLUDE) $(EXTRA_CFLAGS) -I$(obj) \
+	$(CLANG) -nostdinc -isystem /usr/lib/gcc/x86_64-linux-gnu/7/include  \
+	-I$(kernel_srctree)/arch/x86/include -I$(kernel_srctree)/arch/x86/include/generated  -I$(kernel_srctree)/include \
+	-I$(kernel_srctree)/arch/x86/include/uapi -I$(kernel_srctree)/arch/x86/include/generated/uapi -I$(kernel_srctree)/include/uapi \
+	-I$(kernel_srctree)/include/generated/uapi -include $(kernel_srctree)/include/linux/kconfig.h -I$(kernel_srctree)/ubuntu/include \
+  	-I$(CURDIR) \
+		-I$(kernel_srctree)/tools/testing/selftests/bpf/ \
+		-D__KERNEL__ -Wno-unused-value -Wno-pointer-sign \
+		-D__TARGET_ARCH_$(ARCH) -Wno-compare-distinct-pointer-types \
+		-Wno-gnu-variable-sized-type-not-at-end \
+		-Wno-address-of-packed-member -Wno-tautological-compare \
+		-Wno-unknown-warning-option $(CLANG_ARCH_ARGS) \
+		-O2 -emit-llvm -c $< -o -| $(LLC) -march=bpf -filetype=obj -o $@
+
+syscall_tp_kern.o: syscall_tp_kern.c
 	$(CLANG) $(NOSTDINC_FLAGS) $(LINUXINCLUDE) $(EXTRA_CFLAGS) -I$(obj) \
 	$(CLANG) -nostdinc -isystem /usr/lib/gcc/x86_64-linux-gnu/7/include  \
 	-I$(kernel_srctree)/arch/x86/include -I$(kernel_srctree)/arch/x86/include/generated  -I$(kernel_srctree)/include \
