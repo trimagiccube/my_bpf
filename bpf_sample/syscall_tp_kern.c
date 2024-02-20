@@ -38,6 +38,7 @@ struct bpf_map_def SEC("maps") exit_open_map = {
 	.value_size = sizeof(u32),
 	.max_entries = 1,
 };
+
 struct bpf_map_def SEC("maps") enter_open_map = {
 	.type = BPF_MAP_TYPE_ARRAY,
 	.key_size = sizeof(u32),
@@ -50,6 +51,7 @@ struct bpf_map_def SEC("maps") enter_fchownat_map = {
 	.value_size = sizeof(u32),
 	.max_entries = 1,
 };
+
 static __always_inline void count(void *map)
 {
 	u32 key = 0;
